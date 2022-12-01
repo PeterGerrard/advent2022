@@ -1,6 +1,7 @@
 module Main where
 
-import qualified Day01 (main)
+import Day01 (parse, partA, partB)
+import Control.Arrow
 
 main :: IO ()
-main = Day01.main
+main = interact $ show . (partA &&& partB) . parse

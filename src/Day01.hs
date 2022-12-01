@@ -14,4 +14,5 @@ sortDesc = sortOn Down
 partB :: [[Integer]] -> Integer
 partB = sum . take 3 . sortDesc . map sum
 
-main = interact $ show . (\x -> (partA x, partB x)) . map (map read) . splitEmpty . lines
+parse :: String -> [[Integer]]
+parse = map (map read) . splitEmpty . lines
