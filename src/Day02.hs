@@ -22,17 +22,17 @@ scoreMove Rock = 1
 scoreMove Paper = 2
 scoreMove Scissors = 3
 
-scoreOutcome :: Move -> Move -> (Integer, Integer)
-scoreOutcome Rock Paper = (0,6)
-scoreOutcome Paper Scissors = (0,6)
-scoreOutcome Scissors Rock = (0,6)
-scoreOutcome Paper Rock = (6,0)
-scoreOutcome Scissors Paper = (6,0)
-scoreOutcome Rock Scissors = (6,0)
-scoreOutcome _ _ = (3,3)
+scoreOutcome :: Move -> Move -> Integer
+scoreOutcome Rock Paper = 6
+scoreOutcome Paper Scissors = 6
+scoreOutcome Scissors Rock = 6
+scoreOutcome Paper Rock = 0
+scoreOutcome Scissors Paper = 0
+scoreOutcome Rock Scissors = 0
+scoreOutcome _ _ = 3
 
-score :: Game -> (Integer,Integer)
-score (Game a x) = bimap (scoreMove a +) (scoreMove x +) (scoreOutcome a x)
+score :: Game -> Integer
+score (Game a x) = scoreMove x + scoreOutcome a x
 
 oppMove :: OppMove -> Move
 oppMove A = Rock
@@ -40,7 +40,7 @@ oppMove B = Paper
 oppMove C = Scissors
 
 calculateScore :: (Strategy -> Game) -> [Strategy] -> Integer
-calculateScore f = sum . map (snd.score.f)
+calculateScore f = sum . map (score.f)
 
 partA :: [Strategy] -> Integer
 partA = calculateScore applyStrat
