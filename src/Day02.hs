@@ -1,8 +1,6 @@
 module Day02 where
 
-import Data.List.Split
-import Data.List
-import Data.Ord
+import Data.Bifunctor
 
 data Move = Rock | Paper | Scissors
     deriving (Show)
@@ -33,10 +31,8 @@ scoreOutcome Scissors Paper = (6,0)
 scoreOutcome Rock Scissors = (6,0)
 scoreOutcome _ _ = (3,3)
 
-add2 x y = (fst x + fst y, snd x + snd y)
-
 score :: Game -> (Integer,Integer)
-score (Game a x) = add2 (scoreMove a, scoreMove x) (scoreOutcome a x)
+score (Game a x) = bimap (scoreMove a +) (scoreMove x +) (scoreOutcome a x)
 
 oppMove :: OppMove -> Move
 oppMove A = Rock
