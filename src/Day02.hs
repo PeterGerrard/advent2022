@@ -1,4 +1,4 @@
-module Day02 where
+module Day02 (parse, partA, partB) where
 
 import Data.Bifunctor
 
@@ -18,8 +18,6 @@ data Game = Game Move Move
     deriving (Show)
 
 winningMoves = [(Rock, Scissors),(Scissors, Paper),(Paper, Rock)]
-
-isWin x y = (x,y) `elem` winningMoves
 
 scoreMove :: Move -> Integer
 scoreMove Rock = 1
