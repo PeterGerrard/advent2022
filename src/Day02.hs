@@ -1,7 +1,5 @@
 module Day02 (parse, partA, partB) where
 
-import Data.Bifunctor
-
 data Move = Rock | Paper | Scissors
     deriving (Show, Eq)
 
@@ -13,6 +11,9 @@ data Response = X | Y | Z
 
 data Strategy = Strategy OppMove Response
     deriving (Show)
+
+instance Read Strategy where
+    readsPrec _ inp = [(Strategy o r, is') | (o,is) <- reads inp, (r,is') <- reads (tail is)]
 
 data Game = Game Move Move
     deriving (Show)
@@ -60,7 +61,4 @@ partB = calculateScore applyStrat
                 myMove Z = head [y | (y,z) <- winningMoves, z == a']
 
 parse :: String -> [Strategy]
-parse = map parseStrategy . lines
-
-parseStrategy :: String -> Strategy
-parseStrategy [a,' ',x] = Strategy (read [a]) (read [x])
+parse = map read . lines
