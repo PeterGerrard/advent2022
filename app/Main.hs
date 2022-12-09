@@ -1,6 +1,6 @@
 module Main where
 
-import Day08 (parse, partA, partB)
+import Day09 (parse, partA, partB)
 import Control.Arrow
 
 main :: IO ()
