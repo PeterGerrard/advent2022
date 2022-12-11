@@ -70,7 +70,7 @@ printMonkey :: Monkey -> String
 printMonkey (Monkey id xs _ _ _ _) = show id ++ ": " ++ show xs
 
 getClamp :: [Monkey] -> Integer
-getClamp = foldl (\acc (Monkey _ _ _ t _ _) -> acc * t) 1
+getClamp = foldl (\acc (Monkey _ _ _ t _ _) -> lcm acc t) 1
 
 sortDesc = sortOn Down
 
