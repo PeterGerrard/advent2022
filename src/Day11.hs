@@ -1,5 +1,3 @@
-{-# LANGUAGE TupleSections #-}
-
 module Day11 where
 
 import Data.List
@@ -71,10 +69,18 @@ roundMonkey g a = go n a
 printMonkey :: Monkey -> String
 printMonkey (Monkey id xs _ _ _ _) = show id ++ ": " ++ show xs
 
+getClamp :: [Monkey] -> Integer
+getClamp = foldl (\acc (Monkey _ _ _ t _ _) -> acc * t) 1
+
 sortDesc = sortOn Down
 
+solve :: Int -> (Integer -> Integer) -> Array Integer Monkey -> Int
+solve x g a = product . take 2 . sortDesc . Map.elems . snd . (!! x) . iterate (roundMonkey ((`mod` clampValue) . g)) $ (a,Map.empty)
+    where
+        clampValue = getClamp $ elems a
+
 partA :: Array Integer Monkey -> Int
-partA = product . take 2 . sortDesc . Map.elems . snd . last . take 21 . iterate (roundMonkey (`div` 3)) . (,Map.empty)
+partA = solve 20 (`div` 3)
 
 partB :: Array Integer Monkey -> Int
-partB = product . take 2 . sortDesc . Map.elems . snd . last . take 10001 . iterate (roundMonkey (`mod` 9699690)) . (,Map.empty)
+partB = solve 10000 id
