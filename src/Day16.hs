@@ -7,6 +7,7 @@ import Data.List.Split
 import Data.Map.Strict (Map)
 import qualified Data.Map.Strict as Map
 import Data.Maybe
+import qualified Data.Set as Set
 
 parseValve :: String -> (String, Integer, [String])
 parseValve inp = (v,read . init $ drop 5 r,map (filter (/=',')) vs)
@@ -32,19 +33,22 @@ getPath o t0 m = move ([],0) t0 o
             | t > 0 = move (p:acc, r + (t-1) * (mrate Map.! p)) (t-1) p (Map.delete p mrate)
             | otherwise = [r]
 
+solve :: Integer -> (Map (String,String) Integer, Map String Integer) -> Integer
+solve i (distance, fs) = maximum $ getPath "AA" i distance fs
+
 partA :: (Map (String,String) Integer, Map String Integer) -> Integer
-partA (distance, fs) = maximum $ getPath "AA" 30 distance fs
+partA = solve 30
 
-partitions :: Ord a => Map a b -> [(Map a b,Map a b)]
-partitions = go [] []  . Map.assocs
-    where
-        go xs ys [] = [(Map.fromList xs, Map.fromList ys)]
-        go xs ys (z:zs) = go (z:xs) ys zs ++ go xs (z:ys) zs
-
-getDoublePath :: (String,String) -> Integer -> Map (String, String) Integer -> Map String Integer -> [Integer]
-getDoublePath (o1,o2) t0 m mrate = [relieved o1 mrate1 + relieved o2 mrate2 | (mrate1, mrate2) <- partitions mrate]
-    where
-        relieved o = maximum . getPath o t0 m
+-- subs :: Ord a => Map a b -> [(Map a b,Map a b)]
+-- subs = sub . Map.assocs
+--     where
+--         go xs ys [] = [(Map.fromList xs, Map.fromList ys)]
+--         go xs ys (z:zs) = go (z:xs) ys zs ++ go xs (z:ys) zs
 
 -- partB :: (Map (String,String) Integer, Map String Integer) -> Integer
-partB (distance, fs) = maximum $ getDoublePath ("AA","AA") 26 distance fs
+partB (distance, fs) = maximum [r1+r2 | (x1,r1) <- Map.assocs ms, let x2 = xs Set.\\ x1, let r2 = ms Map.! x2]
+    where
+        res = curry (solve 26) distance . Map.fromList
+        xs = Map.keysSet fs
+        ms :: Map (Set.Set String) Integer
+        ms = Map.fromList (map (\x -> (Set.fromList (map fst x),res x)) . subsequences $ Map.assocs fs)
