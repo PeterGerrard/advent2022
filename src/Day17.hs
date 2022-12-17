@@ -1,5 +1,7 @@
 module Day17 where
 
+import Data.Array (Array)
+import qualified Data.Array as Array
 import Data.List
 import Data.Set (Set)
 import qualified Data.Set as Set
@@ -26,8 +28,8 @@ rock3 = Rock $ map Pos [(0,0),(1,0),(2,0),(2,1),(2,2)]
 rock4 = Rock $ map Pos [(0,0),(0,1),(0,2),(0,3)]
 rock5 = Rock $ map Pos [(0,0),(1,0),(0,1),(1,1)]
 
-rocks :: [Rock]
-rocks = concat $ repeat [rock1, rock2, rock3, rock4, rock5]
+rocks :: Array Int Rock
+rocks = Array.listArray (0,4) [rock1, rock2, rock3, rock4, rock5]
 
 descend :: Pos -> Pos
 descend (Pos (x,y)) = Pos (x, y-1)
@@ -78,28 +80,34 @@ wind (occupied, p, r) w = (occupied, if overlap occupied rockps || offscreen the
         rockps = offsetRock p' r
         offscreen = any ((\x -> x<=0 || x>=8) . getX) rockps
 
-completeFall :: (Set Pos, Pos, Rock) -> [Wind] -> (Set Pos, [Wind])
-completeFall inp (w:ws) = case fall (wind inp w) of
-                            Left out -> completeFall out ws
-                            Right occ -> (occ, ws)
-
-step :: (Set Pos, [Rock], [Wind]) -> (Set Pos, [Rock], [Wind])
-step (occupied, r:rs, ws) = (occupied', rs, ws')
+completeFall :: Array Int Wind -> (Set Pos, Pos, Rock) -> Int -> (Set Pos, Int)
+completeFall ws = go
     where 
-        (occupied', ws') = completeFall (occupied, start, r) ws
+        go inp w = case fall (wind inp (ws Array.! w)) of
+                        Left out -> go out w'
+                        Right occ -> (occ, w')
+                where
+                    w' = (w+1) `mod` length ws
+
+step :: Array Int Rock -> Array Int Wind -> (Set Pos, Int, Int) -> (Set Pos, Int, Int)
+step rs ws (occupied, r, w) = (occupied', (r+1)`mod` length rs, w')
+    where 
+        (occupied', w') = completeFall ws (occupied, start, rs Array.! r) w
         start = Pos (3, if null occupied then 4 else Set.findMax (Set.map getY occupied) + 4)
 
 draw :: Set Pos -> IO ()
 draw s = putStr . (++"\n+-------+\n") $ intercalate "\n" ['|':[if Pos (x,y) `Set.member` s then '#' else '.' | x <- [1..7]] ++ "|" | y <- [9,8..1]]
 
-parse :: String -> [Wind]
-parse = map (read . (:[]))
+parse :: String -> Array Int Wind
+parse = (\xs -> Array.listArray (0,length xs - 1) xs) . map (read . (:[]))
 
-solve :: Int -> [Wind] -> Integer
-solve n ws = Set.findMax . Set.map getY . (\(x,_,_) -> x) $ iterate step (Set.empty, rocks, concat (repeat ws)) !! n
+solve :: Int -> Array Int Wind -> Integer
+solve n ws = Set.findMax . Set.map getY . (\(x,_,_) -> x) $ iterate (step rocks ws) (Set.empty, 0, 0) !! n
 
-partA :: [Wind] -> Integer
+partA :: Array Int Wind -> Integer
 partA = solve 2022
 
-partB :: [Wind] -> Integer
-partB = solve 1000000000000
+partB :: Array Int Wind -> Integer
+partB = const 0 --solve 1000000000000
+
+example = ">>><<><>><<<>><>>><<<>>><<<><<<>><>><<>>"
