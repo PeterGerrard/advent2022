@@ -6,7 +6,7 @@ import Data.List
 import Data.Set (Set)
 import qualified Data.Set as Set
 
-newtype Pos = Pos (Integer, Integer)
+newtype Pos = Pos (Int, Int)
     deriving (Show, Ord, Eq)
 newtype Rock = Rock [Pos]
     deriving (Show)
@@ -47,9 +47,9 @@ offsetRock p (Rock rs) = map (addPos p) rs
 overlap :: Set Pos -> [Pos] -> Bool
 overlap s = any (`Set.member` s)
 
-getX :: Pos -> Integer
+getX :: Pos -> Int
 getX (Pos (x,_)) = x
-getY :: Pos -> Integer
+getY :: Pos -> Int
 getY (Pos (_,y)) = y
 
 removeSurronded :: Set Pos -> Set Pos
@@ -57,8 +57,8 @@ removeSurronded ps = Set.filter (not . surronded) ps
     where
         surronded p = all ((\p@(Pos (x,y)) -> x < 1 || x > 7 || y < 1 || p `Set.member` ps) . addPos p . Pos) [(0,1),(0,-1),(1,0),(-1,0)]
 
-merge :: Set Pos -> Set Pos -> Set Pos
-merge a b = removeSurronded $ if null completeRows then combined else Set.filter ((>=maxY) . getY) combined
+merge :: (Set Pos, Int) -> Set Pos -> (Set Pos, Int)
+merge (a,f) b = if null completeRows then (combined, f) else (Set.map (addPos (Pos (0,-maxY))) $ Set.filter ((>maxY) . getY) combined, maxY + f)
     where
         combined = Set.union a b
         toCheck = Set.toList $ Set.map getY b
@@ -66,33 +66,33 @@ merge a b = removeSurronded $ if null completeRows then combined else Set.filter
         maxY = maximum completeRows
 
 
-fall :: (Set Pos, Pos, Rock) -> Either (Set Pos, Pos, Rock) (Set Pos)
-fall (occupied, p, r) = if overlap occupied rockps || offscreen then Right (occupied `merge` Set.fromList (offsetRock p r)) else Left (occupied, p', r)
+fall :: (Set Pos, Pos, Rock, Int) -> Either (Set Pos, Pos, Rock, Int) (Set Pos, Int)
+fall (occupied, p, r, f) = if overlap occupied rockps || offscreen then Right ((occupied,f) `merge` Set.fromList (offsetRock p r)) else Left (occupied, p', r, f)
     where
         p' = descend p
         rockps = offsetRock p' r
         offscreen = any ((<1) . getY) rockps
 
-wind :: (Set Pos, Pos, Rock) -> Wind -> (Set Pos, Pos, Rock)
-wind (occupied, p, r) w = (occupied, if overlap occupied rockps || offscreen then p else p', r)
+wind :: (Set Pos, Pos, Rock, Int) -> Wind -> (Set Pos, Pos, Rock, Int)
+wind (occupied, p, r, f) w = (occupied, if overlap occupied rockps || offscreen then p else p', r, f)
     where
         p' = shift p w
         rockps = offsetRock p' r
         offscreen = any ((\x -> x<=0 || x>=8) . getX) rockps
 
-completeFall :: Array Int Wind -> (Set Pos, Pos, Rock) -> Int -> (Set Pos, Int)
+completeFall :: Array Int Wind -> (Set Pos, Pos, Rock, Int) -> Int -> (Set Pos, Int, Int)
 completeFall ws = go
-    where 
+    where
         go inp w = case fall (wind inp (ws Array.! w)) of
                         Left out -> go out w'
-                        Right occ -> (occ, w')
+                        Right (occ, f') -> (occ, w', f')
                 where
                     w' = (w+1) `mod` length ws
 
-step :: Array Int Rock -> Array Int Wind -> (Set Pos, Int, Int) -> (Set Pos, Int, Int)
-step rs ws (occupied, r, w) = (occupied', (r+1)`mod` length rs, w')
+step :: Array Int Rock -> Array Int Wind -> (Set Pos, Int, Int, Int) -> (Set Pos, Int, Int, Int)
+step rs ws (occupied, r, w, f) = (occupied', (r+1)`mod` length rs, w', f')
     where 
-        (occupied', w') = completeFall ws (occupied, start, rs Array.! r) w
+        (occupied', w', f') = completeFall ws (occupied, start, rs Array.! r, f) w
         start = Pos (3, if null occupied then 4 else Set.findMax (Set.map getY occupied) + 4)
 
 draw :: Set Pos -> IO ()
@@ -101,13 +101,25 @@ draw s = putStr . (++"\n+-------+\n") $ intercalate "\n" ['|':[if Pos (x,y) `Set
 parse :: String -> Array Int Wind
 parse = (\xs -> Array.listArray (0,length xs - 1) xs) . map (read . (:[]))
 
-solve :: Int -> Array Int Wind -> Integer
-solve n ws = Set.findMax . Set.map getY . (\(x,_,_) -> x) $ iterate (step rocks ws) (Set.empty, 0, 0) !! n
+solve :: Int -> Array Int Wind -> Int
+solve n ws = (\(x,_,_, f) -> f + if Set.null x then 0 else (Set.findMax . Set.map getY) x) $ iterate (step rocks ws) (Set.empty, 0, 0, 0) !! n
 
-partA :: Array Int Wind -> Integer
+partA :: Array Int Wind -> Int
 partA = solve 2022
 
-partB :: Array Int Wind -> Integer
-partB = const 0 --solve 1000000000000
+findLoop :: Array Int Rock -> Array Int Wind -> ([Int], [Int], Int)
+findLoop rs ws = go [] [] (Set.empty, 0, 0, 0)
+    where
+        go seen floors (p, r, w, f)
+            | (p,r,w) `elem` seen = (map (`solve` ws) [0..i-1], map (`solve` ws) [i..j-1], solve j ws - solve i ws)
+            | otherwise = go ((p,r,w):seen) (f:floors) (step rs ws (p,r,w,f))
+            where
+                (Just i) = (p,r,w) `elemIndex` reverse seen
+                j = length seen
 
-example = ">>><<><>><<<>><>>><<<>>><<<><<<>><>><<>>"
+partB :: Array Int Wind -> Int
+partB ws = if ix < length hs then hs !! ix else (hl !! r) + inc * d
+    where
+        (hs, hl, inc) = findLoop rocks ws
+        ix = 1000000000000
+        (d, r) = (ix - length hs) `divMod` length hl
