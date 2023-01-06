@@ -1,7 +1,7 @@
 module Main where
 
-import Day22 (parse, partA, partB)
 import Control.Arrow
+import Day23 (parse, partA, partB)
 
 main :: IO ()
 main = interact $ show . (partA &&& partB) . parse
